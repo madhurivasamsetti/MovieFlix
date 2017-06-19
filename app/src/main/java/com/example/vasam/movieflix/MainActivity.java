@@ -3,7 +3,8 @@ package com.example.vasam.movieflix;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
-import android.widget.TextView;
+import android.support.v7.widget.GridLayoutManager;
+import android.support.v7.widget.RecyclerView;
 
 import org.json.JSONException;
 
@@ -12,13 +13,21 @@ import java.net.URL;
 
 public class MainActivity extends AppCompatActivity {
     public static final String LOG_TAG = MainActivity.class.getName();
-    private TextView mDisplayTextView;
+    private CustomArrayAdapter mAdapter;
+    private RecyclerView mRecyclerView;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        mDisplayTextView = (TextView) findViewById(R.id.tv_response);
+        mRecyclerView = (RecyclerView) findViewById(R.id.recycler_view);
+        mAdapter = new CustomArrayAdapter();
+        GridLayoutManager layoutManager = new GridLayoutManager(this,2);
+        mRecyclerView.setLayoutManager(layoutManager);
+        mRecyclerView.setAdapter(mAdapter);
+        mRecyclerView.setHasFixedSize(true);
+
         loadMovieData();
     }
 
@@ -49,9 +58,7 @@ public class MainActivity extends AppCompatActivity {
         @Override
         protected void onPostExecute(String[] movieData) {
             if (movieData != null) {
-                for (String movieItem : movieData) {
-                    mDisplayTextView.append(movieItem + "\n\n\n");
-                }
+                mAdapter.setMovieData(movieData);
             }
         }
     }

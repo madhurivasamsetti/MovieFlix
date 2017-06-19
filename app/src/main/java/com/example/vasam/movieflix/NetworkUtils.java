@@ -39,11 +39,20 @@ public class NetworkUtils {
     /*
     w92", "w154", "w185", "w342", "w500", "w780", or "original"
      */
+    //http://image.tmdb.org/t/p/w185//nBNZadXqJSdt05SHLqgT0HuC5Gm.jpg
 
-    // &language=en-US&sort_by=popularity.desc&include_adult=false&include_video=false&page=1
-    //private static final String IMAGE_SIZE = "w500";
 
     private NetworkUtils() {
+    }
+
+    public static String buildUrl(String imagePath) {
+        Uri buildUri = Uri.parse(BASE_IMAGE_URL).buildUpon()
+                .appendPath("w500")
+                .build();
+        Uri uri = Uri.withAppendedPath(buildUri,imagePath);
+        Log.i("NetworkUtils.class","uri: "+uri);
+        return uri.toString();
+
     }
 
     public static URL buildUrl() {
@@ -83,20 +92,20 @@ public class NetworkUtils {
             urlConnection.disconnect();
         }
     }
+
     public static String[] getMovieDataFromJSONResponse(String jsonResponse) throws JSONException {
 
         JSONObject root = new JSONObject(jsonResponse);
         JSONArray results = root.getJSONArray("results");
         String[] parsedMovieData = new String[results.length()];
-        for(int i=0;i<results.length();i++)
-        {
+        for (int i = 0; i < results.length(); i++) {
             JSONObject object = results.getJSONObject(i);
             String movie_title = object.getString("original_title");
             String image_path = object.getString("poster_path");
             int user_rating = object.getInt("vote_average");
             String overview = object.getString("overview");
             String release_date = object.getString("release_date");
-            parsedMovieData[i]=movie_title+"-"+image_path+"-"+user_rating+"-"+overview+"-"+release_date+"-";
+            parsedMovieData[i] = image_path + "-" + movie_title + "-" + user_rating + "-" + overview + "-" + release_date + "-";
         }
 
         return parsedMovieData;
