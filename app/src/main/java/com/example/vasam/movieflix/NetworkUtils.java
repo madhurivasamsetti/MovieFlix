@@ -1,6 +1,7 @@
 package com.example.vasam.movieflix;
 
 import android.net.Uri;
+import android.text.TextUtils;
 import android.util.Log;
 
 import org.json.JSONArray;
@@ -14,87 +15,148 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Scanner;
 
+import static com.example.vasam.movieflix.MainActivity.LOG_TAG;
+
 /**
  * Created by vasam on 6/18/2017.
  */
 
 public class NetworkUtils {
-    /* These utilities are used to communicate with the moviedb
+
+    /* These utilities are used to communicate with the movie database
     */
 
+    private static final String TAG_LOG = NetworkUtils.class.getSimpleName();
     private static final String BASE_URL = "https://api.themoviedb.org/3/discover/movie";
-    private static final String API_KEY = "8f54780bddbe846b6331c33af3188a96";
+    private static final String API_KEY = "";
     private static final String BASE_IMAGE_URL = "https://image.tmdb.org/t/p";
-    //private static final String IMAGESIZE_PARAM = "";
-    private static final String FILE_PATH = "";
     private static final String API_KEY_PARAM = "api_key";
     private static final String LANGUAGE_PARAM = "language";
     private static final String LANGUAGE = "en-US";
-    private static final String SORT_PARAM = "sort_by";
-    private static final String SORT = "popularity.desc";
     private static final String INCLUDEADULT_PARAM = "include_adult";
     private static final String HAS_ADULT_MOVIE = "false";
     private static final String INCLUDEVIDEO_PARAM = "include_video";
     private static final String HAS_VIDEO = "true";
-    /*
-    w92", "w154", "w185", "w342", "w500", "w780", or "original"
-     */
-    //http://image.tmdb.org/t/p/w185//nBNZadXqJSdt05SHLqgT0HuC5Gm.jpg
-
+    private static final String IMAGE_SIZE = "w500";
+    private static final String GREATER_RELEASE_DATE_PARAM = "release_date.gte";
+    private static final String GREATER_RELEASE_DATE = "2016-01-01";
+    private static final String LEAST_RELEASE_DATE_PARAM = "release_date.lte";
+    private static final String LEAST_RELEASE_DATE = "2017-06-01";
+    private static final String GREATER_VOTE_AVERAGE_PARAM = "vote_average.gte";
+    private static final String GREATER_VOTE_AVERAGE = "7";
 
     private NetworkUtils() {
     }
 
-    public static String buildUrl(String imagePath) {
+    /**
+     * this method is used to build an image url
+     * before making a call to the movie database
+     *
+     * @param imagePath movie Image Thumbnail path
+     * @return complete Url to fetch image from server
+     */
+    public static String buildImageUrl(String imagePath) {
         Uri buildUri = Uri.parse(BASE_IMAGE_URL).buildUpon()
-                .appendPath("w500")
+                .appendPath(IMAGE_SIZE)
                 .build();
-        Uri uri = Uri.withAppendedPath(buildUri,imagePath);
-        Log.i("NetworkUtils.class","uri: "+uri);
+        Uri uri = Uri.withAppendedPath(buildUri, imagePath);
         return uri.toString();
-
     }
 
-    public static URL buildUrl() {
-        Uri buildUri = Uri.parse(BASE_URL).buildUpon()
+    /**
+     * this method is used to construct a complete url used for fetching list of movies
+     * based on user's option from database.
+     *
+     * @param userValue menu option id when user selects any menu options
+     * @return url used to retrieve list of movies.
+     */
+    public static URL buildUrl(int userValue) {
+
+        Uri pathUri = Uri.parse(BASE_URL).buildUpon()
                 .appendQueryParameter(API_KEY_PARAM, API_KEY)
                 .appendQueryParameter(LANGUAGE_PARAM, LANGUAGE)
-                .appendQueryParameter(SORT_PARAM, SORT)
+                .appendQueryParameter(GREATER_RELEASE_DATE_PARAM, GREATER_RELEASE_DATE)
+                .appendQueryParameter(LEAST_RELEASE_DATE_PARAM, LEAST_RELEASE_DATE)
                 .appendQueryParameter(INCLUDEADULT_PARAM, HAS_ADULT_MOVIE)
                 .appendQueryParameter(INCLUDEVIDEO_PARAM, HAS_VIDEO).build();
-        Log.i("NetworkUtils.class", "uri: " + buildUri);
-        URL url = null;
-        try {
-            url = new URL(buildUri.toString());
-        } catch (MalformedURLException e) {
-            e.printStackTrace();
+        URL updatedUrl = null;
+
+        switch (userValue) {
+            case R.id.action_rate:
+                try {
+                    updatedUrl = new URL((pathUri.buildUpon().
+                            appendQueryParameter(GREATER_VOTE_AVERAGE_PARAM, GREATER_VOTE_AVERAGE).build()).toString());
+                } catch (MalformedURLException e) {
+                    e.printStackTrace();
+                }
+                break;
+            case R.id.action_popular:
+            default:
+                try {
+                    updatedUrl = new URL(pathUri.toString());
+                } catch (MalformedURLException e) {
+                    e.printStackTrace();
+                }
+                break;
         }
-        return url;
+        return updatedUrl;
     }
 
+    /**
+     * this method is used to make httpconnection using the url,
+     * read the stream and return the result i.e jasonresponse
+     *
+     * @param url used to contact the movie database server
+     * @return modified JASONResponse (into user readable format) which received from the server.
+     * @throws IOException
+     */
     public static String getJSONResponseFromHTTPConnection(URL url) throws IOException {
         HttpURLConnection urlConnection;
-        InputStream inputStream;
+        InputStream inputStream = null;
+        String jsonResponse = "";
+        if (url == null) {
+            return jsonResponse;
+        }
 
         urlConnection = (HttpURLConnection) url.openConnection();
         try {
-            inputStream = urlConnection.getInputStream();
-            Scanner scanner = new Scanner(inputStream);
-            scanner.useDelimiter("\\A");
-
-            boolean hasInput = scanner.hasNext();
-            if (hasInput) {
-                return scanner.next();
+            if (urlConnection.getResponseCode() == 200) {
+                inputStream = urlConnection.getInputStream();
+                Scanner scanner = new Scanner(inputStream);
+                scanner.useDelimiter("\\A");
+                boolean hasInput = scanner.hasNext();
+                if (hasInput) {
+                    jsonResponse = scanner.next();
+                } else {
+                    return null;
+                }
             } else {
-                return null;
+                Log.v(TAG_LOG, "error code :" + urlConnection.getResponseCode());
             }
+        } catch (IOException e) {
+            Log.e(LOG_TAG, "network connection error", e);
         } finally {
-            urlConnection.disconnect();
+            if (urlConnection != null) {
+                urlConnection.disconnect();
+            }
+            if (inputStream != null) {
+                inputStream.close();
+            }
         }
+        return jsonResponse;
     }
 
+    /**
+     * this method parses the JsonResponse that was received
+     * @param jsonResponse received from getJSONResponseFromHTTPConnection method
+     * @return String array containing all the required movie details.
+     * @throws JSONException
+     */
     public static String[] getMovieDataFromJSONResponse(String jsonResponse) throws JSONException {
 
+        if (TextUtils.isEmpty(jsonResponse)) {
+            return null;
+        }
         JSONObject root = new JSONObject(jsonResponse);
         JSONArray results = root.getJSONArray("results");
         String[] parsedMovieData = new String[results.length()];
@@ -105,7 +167,7 @@ public class NetworkUtils {
             int user_rating = object.getInt("vote_average");
             String overview = object.getString("overview");
             String release_date = object.getString("release_date");
-            parsedMovieData[i] = image_path + "-" + movie_title + "-" + user_rating + "-" + overview + "-" + release_date + "-";
+            parsedMovieData[i] = image_path + "=" + movie_title + "=" + user_rating + "=" + overview + "=" + release_date;
         }
 
         return parsedMovieData;

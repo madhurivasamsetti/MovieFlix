@@ -1,3 +1,7 @@
 <resources>
     <string name="app_name">MovieFlix</string>
+    <string name="error_connection">No Internet Connection</string>
+    <string name="popular">Most Popular</string>
+    <string name="rate">Highest rated</string>
+    <string name="content_description">Movie Image</string>
 </resources>
