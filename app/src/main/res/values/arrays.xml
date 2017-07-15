@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <array name="pref_sort_option_labels">
+        <item>@string/pref_priority_label</item>
+        <item>@string/pref_rated_label</item>
+        <item>@string/pref_favorite_label</item>
+    </array>
+    <array name="pref_sort_option_values">
+        <item>@string/pref_priority_value</item>
+        <item>@string/pref_rated_value</item>
+        <item>@string/pref_favorite_value</item>
+    </array>
+</resources>
