@@ -13,6 +13,8 @@ import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Scanner;
 
 import static com.example.vasam.movieflix.MainActivity.LOG_TAG;
@@ -27,23 +29,9 @@ public class NetworkUtils {
     */
 
     private static final String TAG_LOG = NetworkUtils.class.getSimpleName();
-    private static final String BASE_URL = "https://api.themoviedb.org/3/discover/movie";
-    private static final String API_KEY = "";
     private static final String BASE_IMAGE_URL = "https://image.tmdb.org/t/p";
-    private static final String API_KEY_PARAM = "api_key";
-    private static final String LANGUAGE_PARAM = "language";
-    private static final String LANGUAGE = "en-US";
-    private static final String INCLUDEADULT_PARAM = "include_adult";
-    private static final String HAS_ADULT_MOVIE = "false";
-    private static final String INCLUDEVIDEO_PARAM = "include_video";
-    private static final String HAS_VIDEO = "true";
     private static final String IMAGE_SIZE = "w500";
-    private static final String GREATER_RELEASE_DATE_PARAM = "release_date.gte";
-    private static final String GREATER_RELEASE_DATE = "2016-01-01";
-    private static final String LEAST_RELEASE_DATE_PARAM = "release_date.lte";
-    private static final String LEAST_RELEASE_DATE = "2017-06-01";
-    private static final String GREATER_VOTE_AVERAGE_PARAM = "vote_average.gte";
-    private static final String GREATER_VOTE_AVERAGE = "7";
+
 
     private NetworkUtils() {
     }
@@ -63,43 +51,16 @@ public class NetworkUtils {
         return uri.toString();
     }
 
-    /**
-     * this method is used to construct a complete url used for fetching list of movies
-     * based on user's option from database.
-     *
-     * @param userValue menu option id when user selects any menu options
-     * @return url used to retrieve list of movies.
-     */
-    public static URL buildUrl(int userValue) {
-
-        Uri pathUri = Uri.parse(BASE_URL).buildUpon()
-                .appendQueryParameter(API_KEY_PARAM, API_KEY)
-                .appendQueryParameter(LANGUAGE_PARAM, LANGUAGE)
-                .appendQueryParameter(GREATER_RELEASE_DATE_PARAM, GREATER_RELEASE_DATE)
-                .appendQueryParameter(LEAST_RELEASE_DATE_PARAM, LEAST_RELEASE_DATE)
-                .appendQueryParameter(INCLUDEADULT_PARAM, HAS_ADULT_MOVIE)
-                .appendQueryParameter(INCLUDEVIDEO_PARAM, HAS_VIDEO).build();
-        URL updatedUrl = null;
-
-        switch (userValue) {
-            case R.id.action_rate:
-                try {
-                    updatedUrl = new URL((pathUri.buildUpon().
-                            appendQueryParameter(GREATER_VOTE_AVERAGE_PARAM, GREATER_VOTE_AVERAGE).build()).toString());
-                } catch (MalformedURLException e) {
-                    e.printStackTrace();
-                }
-                break;
-            case R.id.action_popular:
-            default:
-                try {
-                    updatedUrl = new URL(pathUri.toString());
-                } catch (MalformedURLException e) {
-                    e.printStackTrace();
-                }
-                break;
+    public static URL buildUrl(String stringUrl) {
+        URL url = null;
+        try {
+            url = new URL(stringUrl);
+        } catch (MalformedURLException e) {
+            //e.printStackTrace();
+            Log.e(LOG_TAG, "exception thrown during url parse", e);
         }
-        return updatedUrl;
+
+        return url;
     }
 
     /**
@@ -110,6 +71,7 @@ public class NetworkUtils {
      * @return modified JASONResponse (into user readable format) which received from the server.
      * @throws IOException
      */
+
     public static String getJSONResponseFromHTTPConnection(URL url) throws IOException {
         HttpURLConnection urlConnection;
         InputStream inputStream = null;
@@ -146,32 +108,114 @@ public class NetworkUtils {
         return jsonResponse;
     }
 
-    /**
-     * this method parses the JsonResponse that was received
-     * @param jsonResponse received from getJSONResponseFromHTTPConnection method
-     * @return String array containing all the required movie details.
-     * @throws JSONException
-     */
-    public static String[] getMovieDataFromJSONResponse(String jsonResponse) throws JSONException {
+
+    public static List<Movie> fetchMovieData(String requestedUrl) throws JSONException {
+
+        URL url = buildUrl(requestedUrl);
+        String jsonResponse = null;
+
+        try {
+            jsonResponse = getJSONResponseFromHTTPConnection(url);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return geteDataFromJSONResponse(jsonResponse);
+    }
+
+    public static List<Object> fetchExtraMovieData(String extraDataUrl) {
+
+        URL updatedUrl = buildUrl(extraDataUrl);
+        String extraJsonResponse = null;
+
+        try {
+            extraJsonResponse = getJSONResponseFromHTTPConnection(updatedUrl);
+        } catch (IOException e) {
+            e.printStackTrace();
+
+        }
+        return extractFromextraJsonResponse(extraJsonResponse);
+    }
+
+    private static List<Object> extractFromextraJsonResponse(String extraJsonResponse) {
+        List<Object> extra_data = new ArrayList<Object>();
+        if (TextUtils.isEmpty(extraJsonResponse)) {
+            return null;
+        }
+        String videoKey;
+        int duration;
+        JSONObject root;
+
+        try {
+            root = new JSONObject(extraJsonResponse);
+            if (!root.isNull("runtime")) {
+                duration = root.getInt("runtime");
+                Log.d("NetworkUtils.class", "duration: " + duration);
+                extra_data.add(0, duration);
+            } else {
+                extra_data.add(0, 0);
+            }
+            JSONObject videosObject = root.getJSONObject("videos");
+            JSONArray videosArray = videosObject.getJSONArray("results");
+            if (videosArray.length() < 1) {
+                videoKey = "NoVideoAvailable";
+            } else {
+                JSONObject videoObject = videosArray.getJSONObject(0);
+                videoKey = videoObject.getString("key");
+            }
+            extra_data.add(1, videoKey);
+
+            JSONObject reviewsObject = root.getJSONObject("reviews");
+            JSONArray reviewsArray = reviewsObject.getJSONArray("results");
+            if (reviewsArray.length() < 1) {
+                String[] reviews = {"No reviews found"};
+                extra_data.add(2, reviews);
+            } else {
+                String[] reviews = new String[reviewsArray.length()];
+                for (int i = 0; i < reviewsArray.length(); i++) {
+                    JSONObject reviewObject = reviewsArray.getJSONObject(i);
+                    reviews[i] = reviewObject.getString("content");
+                }
+                extra_data.add(2, reviews);
+            }
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+        return extra_data;
+    }
+
+
+    public static List<Movie> geteDataFromJSONResponse(String jsonResponse) throws JSONException {
 
         if (TextUtils.isEmpty(jsonResponse)) {
             return null;
         }
+        List<Movie> movies = new ArrayList<>();
         JSONObject root = new JSONObject(jsonResponse);
         JSONArray results = root.getJSONArray("results");
-        String[] parsedMovieData = new String[results.length()];
+
         for (int i = 0; i < results.length(); i++) {
             JSONObject object = results.getJSONObject(i);
+            int movie_id = object.getInt("id");
             String movie_title = object.getString("original_title");
             String image_path = object.getString("poster_path");
+            String release_date = object.getString("release_date");
             int user_rating = object.getInt("vote_average");
             String overview = object.getString("overview");
-            String release_date = object.getString("release_date");
-            parsedMovieData[i] = image_path + "=" + movie_title + "=" + user_rating + "=" + overview + "=" + release_date;
+
+            String base_url = "https://api.themoviedb.org/3/movie/" + movie_id
+                    + "?api_key=&language=en-US" +
+                    "&append_to_response=reviews,videos";
+
+            List<Object> extra_data = fetchExtraMovieData(base_url);
+            int duration = (int) extra_data.get(0);
+            String video_key = (String) extra_data.get(1);
+            String[] reviews = (String[]) extra_data.get(2);
+            Movie movie = new Movie(movie_id, movie_title, image_path, release_date, user_rating,
+                    overview, video_key, reviews, duration);
+            movies.add(movie);
         }
-
-        return parsedMovieData;
+        return movies;
     }
-
 }
+
 

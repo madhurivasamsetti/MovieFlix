@@ -1,7 +1,21 @@
 <resources>
     <string name="app_name">MovieFlix</string>
     <string name="error_connection">No Internet Connection</string>
-    <string name="popular">Most Popular</string>
-    <string name="rate">Highest rated</string>
-    <string name="content_description">Movie Image</string>
+    <string name="default_favorite_label">Did not like any Movie?</string>
+    <string name="setting">Settings</string>
+    <string name="content_description_image">Movie Image</string>
+    <string name="content_description_favorite">Favorite Button</string>
+    <string name="trailer_label">Trailer</string>
+    <string name="review_label">Reviews</string>
+
+    <!--used by settings preference screen-->
+    <string name="pref_main_label">Sort By</string>
+    <string name="pref_main_key" translatable="false">sort_by</string>
+    <string name="pref_priority_label">Most Popular</string>
+    <string name="pref_priority_value" translatable="false">popularity.desc</string>
+    <string name="pref_rated_label">High Rated</string>
+    <string name="pref_rated_value" translatable="false">vote_average.desc</string>
+    <string name="pref_favorite_label">Favorite</string>
+    <string name="pref_favorite_value" translatable="false">favorite</string>
+
 </resources>

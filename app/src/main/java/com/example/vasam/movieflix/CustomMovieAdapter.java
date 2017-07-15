@@ -9,21 +9,16 @@ import android.widget.ImageView;
 
 import com.squareup.picasso.Picasso;
 
+import java.util.List;
+
 /**
  * Created by vasam on 6/18/2017.
  */
 
 public class CustomMovieAdapter extends RecyclerView.Adapter<CustomMovieAdapter.MovieViewHolder> {
-    private String[] mMovieData;
     private final CustomMovieAdapterOnClickHandler mClickHandler;
+    private List<Movie> mMovieData;
 
-    /**
-     * declaring an clickHandler interface which can be invoked by the viewHolder
-     * in this class when an item in the adapter gets clicked.
-     */
-    public interface CustomMovieAdapterOnClickHandler {
-        void onClickItem(String movie_item);
-    }
 
     public CustomMovieAdapter(CustomMovieAdapterOnClickHandler onClickHandler) {
         mClickHandler = onClickHandler;
@@ -39,12 +34,11 @@ public class CustomMovieAdapter extends RecyclerView.Adapter<CustomMovieAdapter.
 
     @Override
     public void onBindViewHolder(MovieViewHolder holder, int position) {
-
-        String movieItem = mMovieData[position];
-        String part[] = movieItem.split("=");
-        String movieImage_path = part[0];
+        Movie movie_objects = mMovieData.get(position);
+        String movieImage_path = movie_objects.getmMovieImagePath();
         String url = NetworkUtils.buildImageUrl(movieImage_path);
-        Picasso.with(holder.context).load(url).into(holder.mMovieImageView);
+        Picasso.with(holder.context).load(url).placeholder(R.drawable.ic_image_placeholder)
+                .error(R.drawable.ic_image_placeholder).into(holder.mMovieImageView);
     }
 
     @Override
@@ -52,12 +46,25 @@ public class CustomMovieAdapter extends RecyclerView.Adapter<CustomMovieAdapter.
         if (mMovieData == null) {
             return 0;
         }
-        return mMovieData.length;
+        return mMovieData.size();
+    }
+
+    public void setMovieData(List<Movie> movieData) {
+        mMovieData = movieData;
+        notifyDataSetChanged();
+    }
+
+    /**
+     * declaring an clickHandler interface which can be invoked by the viewHolder
+     * in this class when an item in the adapter gets clicked.
+     */
+    public interface CustomMovieAdapterOnClickHandler {
+        void onClickItem(Movie movie_item);
     }
 
     public class MovieViewHolder extends RecyclerView.ViewHolder implements View.OnClickListener {
-        ImageView mMovieImageView;
         final Context context;
+        ImageView mMovieImageView;
 
         private MovieViewHolder(View itemView) {
             super(itemView);
@@ -69,14 +76,8 @@ public class CustomMovieAdapter extends RecyclerView.Adapter<CustomMovieAdapter.
         @Override
         public void onClick(View v) {
             int position = getAdapterPosition();
-            String movieDataItem = mMovieData[position];
-            mClickHandler.onClickItem(movieDataItem);
+            Movie movieObject = mMovieData.get(position);
+            mClickHandler.onClickItem(movieObject);
         }
     }
-
-    public void setMovieData(String[] movieData) {
-        mMovieData = movieData;
-        notifyDataSetChanged();
-    }
-
 }
